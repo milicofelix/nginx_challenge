@@ -1,44 +1,55 @@
 const express = require("express");
 const app = express();
 const port = 3000;
+
+const mysql = require("mysql");
 const config = {
   host: "db",
   user: "root",
   password: "root",
   database: "nodedb",
 };
-
-const mysql = require("mysql");
-
 const connection = mysql.createConnection(config);
 
-const criarTabela = `CREATE TABLE IF NOT EXISTS people (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255) NOT NULL);`;
-connection.query(criarTabela);
+const createTable = `CREATE TABLE IF NOT EXISTS people (name VARCHAR(50))`;
+const insertValueA = `INSERT INTO people(name) values('Adriano');`;
+const insertValueB = `INSERT INTO people(name) values('Shislene');`;
+
+const queryPeople = `SELECT * FROM people;`;
+
+connection.connect((err) => {
+  if (err) return console.error(err.message);
+
+  connection.query(createTable, (err, results, fields) => {
+    if (err) return console.log(err.message);
+    connection.query(insertValueA, (err, results, fields) => {
+      if (err) return console.log(err.message);
+      connection.query(insertValueB, (err, results, fields) => {
+        if (err) return console.log(err.message);
+      });
+    });
+  });
+});
 
 app.get("/", (req, res) => {
-  const inserirPessoa = `INSERT INTO people(name) values('Augusto')`;
-  connection.query(inserirPessoa);
-
-  let visualizacaoTabela =
-    "<table><thead><tr><th>Id</th><th>Name</th></tr></thead><tbody>";
-
-  const consultaSql = `SELECT id, name FROM people`;
-
-  connection.query(consultaSql, (error, results, fields) => {
-    if (error) {
-      throw error;
-    }
-
-    for (let item of results) {
-      visualizacaoTabela += `<tr><td>${item.id}</td><td>${item.name}</td></tr>`;
-    }
-
-    visualizacaoTabela += "</tbody></table>";
-
-    res.send("<h1>Full Cycle Rocks!</h1><br /><br />" + visualizacaoTabela);
+  connection.query(queryPeople, (err, results, fields) => {
+    if (err) return console.log(err.message);
+    const people = JSON.parse(JSON.stringify(results));
+    const table = people
+      ?.map((item) => `<tr><td>${item.name}</td></tr>`)
+      .toString();
+    res.send(`
+    <div>
+      <h1>Full Cycle</h1>
+      <table>
+        <tr>
+          <th>Nome</th>
+        </tr>
+        ${table}
+      </table>
+    </div>`);
+    console.log("result", people);
   });
-
-  connection.end();
 });
 
 app.listen(port, () => {
